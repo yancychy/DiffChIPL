@@ -153,6 +153,9 @@ plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
 ### Compare t-test and p-value
   
 ```{r echo=FALSE}
+
+plot(fit3$sigma, fitRlimm3$sigma, xlab="Raw sigma (limma)", 
+     ylab = "Shrunk sigma (DiffChIPL)")
 histOverlay(v1=fit3$t[,2], v2=fitRlimm3$t[,2],
             name1="limma", name2="DiffBindL", xname="Moderated t-test value")
 

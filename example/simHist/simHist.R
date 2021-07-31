@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 setwd("/Users/cheny48/Documents/Projects/diffA/DiffChIPL/")
-=======
-setwd("/Users/cheny48/Documents/Projects/diffA/Rlimma0/")
->>>>>>> c212010d18abf5b14c81cfb5bd5e628efd14a151
 pth1 = getwd()
 setwd(paste0(pth1, "/example/simHist/"))
 getwd()
@@ -11,12 +7,11 @@ library(DiffChIPL)
 flib="sim_hist_1.csv"
 countL = getReadCount(inputF=flib,overlap=FALSE, fragment=0,
                       removeBackground=TRUE)
-<<<<<<< HEAD
+
 
 save(a = countL,file = "simHistCount.Data")
 
-=======
->>>>>>> c212010d18abf5b14c81cfb5bd5e628efd14a151
+
 fd = countL$fd
 libsize = fd$lsIP
 
@@ -31,17 +26,7 @@ str1 = "sim-hist1-sim1.vs.sim2-Ridge"
 group= c(1,1,0,0)
 ctrName = "sim2"
 treatName = "sim1"
-<<<<<<< HEAD
-groupName = c(treatName, treatName,ctrName,ctrName) 
-=======
-groupName = c(treatName, treatName,ctrName,ctrName)
 
-deseqName = factor(c( "sim1", "sim1","sim2","sim2"), levels=c("sim2", "sim1"))
-coldata= data.frame(group=deseqName)
-rownames(coldata) = colnames(countAll)
-coldata
-
->>>>>>> c212010d18abf5b14c81cfb5bd5e628efd14a151
 design0 <- cbind(rep(1, 4), c(1,1,0,0))
 colnames(design0) <- c(ctrName, treatName)
 design0
@@ -84,13 +69,5 @@ p = plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
                title=paste0("DiffChIPL \n", str1,"(padj<0.05)\n",
                             length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
 p + theme_classic()
-
-<<<<<<< HEAD
-
-=======
-save(a = refDE, b =fit3, c= rtRlimm3, d=fitRlimm3,
-     e = countL,
-     file = "simHistRes.Data")
->>>>>>> c212010d18abf5b14c81cfb5bd5e628efd14a151
 
 
