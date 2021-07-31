@@ -1,0 +1,171 @@
+---
+title: "SimHistone1 vs SimHistone2"
+output: 
+  html_document:
+    fig_width: 9
+    fig_height: 6
+    fig_caption: true
+    code_folding: hide
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(results='hide', message=FALSE, code_folding='hide')
+
+```
+
+## Load the read counts
+
+```{r results='asis'}
+library(DiffChIPL)
+load("simHistCount.Data")
+
+
+peakPos = countL$peakPos
+peakAll = cbind(as.character(peakPos@seqnames), peakPos@ranges@start,
+                peakPos@ranges@start+peakPos@ranges@width-1)
+rawid = paste0(peakAll[,1],"_" ,peakAll[,2])
+countAll = countL$countAll
+rownames(countAll) = rawid
+
+fd = countL$fd
+libsize = fd$lsIP
+knitr::kable(fd, caption = paste0("Sample information"))
+
+```
+
+
+```{r }
+# Configuration
+str1 = "sim-hist1-sim1.vs.sim2-Ridge"
+group= c(1,1,0,0)
+ctrName = "sim2"
+treatName = "sim1"
+groupName = c(treatName, treatName,ctrName,ctrName) 
+design0 <- cbind(rep(1, 4), c(1,1,0,0))
+colnames(design0) <- c(ctrName, treatName)
+design0
+ 
+for(i in 1:ncol(countAll)){
+  id = which(countAll[,i] < 1)
+  countAll[id,i] = 0
+}
+cpmD = cpmNorm(countAll, libsize = fd$lsIP)
+
+```
+
+```{r }
+# DE information
+refF = "hist1_refDE.bed"
+d1 = read.table(refF, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+refDE = d1$V4
+```
+
+## Results {.tabset} 
+
+### limma + CPM
+  
+```{r echo=FALSE}
+fit3 <- lmFit(cpmD, design0, weights=NULL, method = "ls")
+head(coef(fit3))
+fit3 <- eBayes(fit3,trend=TRUE, robust = TRUE)
+rt3 = topTable(fit3, n = nrow(cpmD), coef=2)
+
+``` 
+
+```{r echo=FALSE}
+hist(rt3$P.Value, breaks = 20, main = paste0("limma-CPM:", str1))
+rt3 = rt3[rownames(cpmD), ]
+ 
+id_limma_CPM = rownames(rt3[which(rt3$adj.P.Val < 0.05),])
+
+plotMAVoc2(mean=rt3$AveExpr, logfc=rt3$logFC, adj.P.Val=rt3$adj.P.Val, 
+           FC=1, refDE= refDE, padj=0.05, MA=TRUE, 
+           title=paste0("limma-CPM \n", str1,"(padj<0.05)\n", 
+                        length(id_limma_CPM), " of ", nrow(rt3) ))
+
+plotMAVoc2(mean=rt3$AveExpr, logfc=rt3$logFC, adj.P.Val=rt3$adj.P.Val, 
+           FC=1,refDE= refDE, padj=0.05, MA=FALSE, 
+           title=paste0("limma-CPM \n", str1,"(padj<0.05)\n", 
+                        length(id_limma_CPM), " of ", nrow(rt3) ))
+``` 
+ 
+### voom + CPM
+  
+```{r echo=FALSE}
+v <- voom(countAll, design0, plot=TRUE, lib.size = fd$lsIP)
+fit2 <- lmFit(v, design0, method = "ls")
+fit2 <- eBayes(fit2, trend=TRUE, robust = TRUE)
+rt2 = topTable(fit2, n = nrow(countAll), coef=2) 
+
+``` 
+
+
+```{r echo=FALSE}
+hist(rt2$P.Value, breaks = 20, main = paste0("Voom-CPM:", str1))
+rt2 = rt2[rownames(cpmD),]
+id_voom_CPM = rownames(rt2[which(rt2$adj.P.Val < 0.05),])
+
+plotMAVoc2(mean=rt2$AveExpr, logfc=rt2$logFC, adj.P.Val=rt2$adj.P.Val, 
+           FC=1, refDE= refDE,padj=0.05, MA=TRUE,
+          title=paste0("Voom-CPM \n", str1,"(padj<0.05)\n", 
+                       length(id_voom_CPM), " of ", nrow(rt2) ))
+
+
+plotMAVoc2(mean=rt2$AveExpr, logfc=rt2$logFC, adj.P.Val=rt2$adj.P.Val, 
+           FC=1, refDE= refDE,padj=0.05, MA=FALSE,  
+           title=paste0("Voom-CPM \n", str1,"(padj<0.05)\n", 
+                        length(id_voom_CPM), " of ", nrow(rt2) ))  
+
+``` 
+ 
+### DiffChIPL
+  
+```{r echo=FALSE}
+resA = DiffChIPL(cpmD, design0, group0 = group )
+fitRlimm3 = resA$fitDiffL
+rtRlimm3 = resA$resDE
+```  
+
+```{r echo=FALSE}
+hist(rtRlimm3$P.Value, breaks = 20, main = paste0("Rlimma-CPM:", str1))
+
+id_Rlimma_CPM = rownames(rtRlimm3[which(rtRlimm3$adj.P.Val < 0.05),])
+ 
+rtRlimm3 = rtRlimm3[rownames(cpmD),]
+aveE = rtRlimm3$AveExpr
+logFC = rtRlimm3$logFC
+padj = rtRlimm3$adj.P.Val
+plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1, 
+           refDE= refDE, padj=0.05, MA=TRUE,
+          title=paste0("DiffChIPL-CPM \n", str1,"(padj<0.05)\n", 
+                       length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
+
+ 
+plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1, 
+           refDE= refDE, padj=0.05, MA=FALSE,
+          title=paste0("DiffChIPL-CPM \n", str1,"(padj<0.05)\n", 
+                       length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) )) 
+
+```  
+
+
+ 
+### Compare t-test and p-value
+  
+```{r echo=FALSE}
+histOverlay(v1=fit3$t[,2], v2=fitRlimm3$t[,2],
+            name1="limma", name2="DiffBindL", xname="Moderated t-test value")
+
+histOverlay(v1=rt3$P.Value, v2=rtRlimm3$P.Value,binN = 20, tN = 0.6,
+            name1="limma", name2="DiffBindL", xname="P-value")
+
+histOverlay(v1=fit2$t[,2], v2=fitRlimm3$t[,2],
+            name1="Voom", name2="DiffBindL", xname="Moderated t-test value")
+
+histOverlay(v1=rt2$P.Value, v2=rtRlimm3$P.Value,binN = 20, tN = 0.6,
+            name1="Voom", name2="DiffBindL", xname="P-value")
+```  
+
+
+## {-}   
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

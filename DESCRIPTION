@@ -1,0 +1,22 @@
+Package: DiffChIPL
+Type: Package
+Title: ChIP-seq differential analysis (DiffChIPL)
+Version: 0.1.0
+Author: Yang Chen
+Maintainer: Yang Chen <yancychy@gmail.com>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL-3
+Encoding: UTF-8
+LazyData: yes
+Depends: R (>= 4.0.0), tidyverse, broom, limma, edgeR, MASS, GenomicRanges, Rsamtools, bamsignals, readr, SGSeq, roxygen2,
+    RColorBrewer, pracma, readr, dplyr, reshape2
+Imports:
+    tidyverse, broom, limma, edgeR, MASS, GenomicRanges, Rsamtools, bamsignals, readr, SGSeq, roxygen2,
+    RColorBrewer, pracma, readr, dplyr, reshape2
+Suggests:
+    knitr,
+    rmarkdown
+Date: 2021-07-31
+RoxygenNote: 7.1.1
+VignetteBuilder: knitr

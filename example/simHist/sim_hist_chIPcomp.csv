@@ -1,0 +1,5 @@
+SampleID,factor,condition,ipReads,ctReads,peaks
+hist1_out_1,hist1,sim1,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_1.bam,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_1.bam,hist1_peaks_up.bed
+hist1_out_2,hist1,sim1,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_2.bam,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_2.bam,hist1_peaks_up.bed
+hist1_out_3,hist1,sim2,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_3.bam,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_3.bam,hist1_peaks_down.bed
+hist1_out_4,hist1,sim2,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_4.bam,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_4.bam,hist1_peaks_down.bed
