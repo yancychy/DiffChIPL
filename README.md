@@ -73,5 +73,5 @@ plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
                        length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
 
 ```  
-![MA plot](https://github.com/yancychy/DiffChIPL/example/simHit/MA_DiffChIPL.png?raw=true)
+![MA plot](https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/MA_DiffChIPL.png)
 
