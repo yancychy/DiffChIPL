@@ -1,12 +1,9 @@
-SampleID,Tissue,Factor,Condition,Treatment,Replicate,bamReads,ControlID,bamControl,Peaks,PeakCaller
-<<<<<<< HEAD
+SampleID,Tissue,Factor,Condition,Treatment,Replicate,bamReads,ControlID,bamControl,Peaks,PeakCaller 
 hist1_out_1,kc167,hist1,sim1,sim1,1,hist1_out_1.bam,sim1,hist1_input_1.bam,hist1_peaks_up.bed,bed
 hist1_out_2,kc167,hist1,sim1,sim1,2,hist1_out_2.bam,sim1,hist1_input_2.bam,hist1_peaks_up.bed,bed
 hist1_out_3,kc167,hist1,sim2,sim2,1,hist1_out_3.bam,sim2,hist1_input_3.bam,hist1_peaks_down.bed,bed
-hist1_out_4,kc167,hist1,sim2,sim2,2,hist1_out_4.bam,sim2,hist1_input_4.bam,hist1_peaks_down.bed,bed
-=======
+hist1_out_4,kc167,hist1,sim2,sim2,2,hist1_out_4.bam,sim2,hist1_input_4.bam,hist1_peaks_down.bed,bed 
 hist1_out_1,kc167,hist1,sim1,sim1,1,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_1.bam,sim1,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_1.bam,hist1_peaks_up.bed,bed
 hist1_out_2,kc167,hist1,sim1,sim1,2,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_2.bam,sim1,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_2.bam,hist1_peaks_up.bed,bed
 hist1_out_3,kc167,hist1,sim2,sim2,1,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_3.bam,sim2,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_3.bam,hist1_peaks_down.bed,bed
 hist1_out_4,kc167,hist1,sim2,sim2,2,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_out_4.bam,sim2,~/Documents/Projects/diffA/Rlimma/simulation/hist1/hist1_input_4.bam,hist1_peaks_down.bed,bed
->>>>>>> c212010d18abf5b14c81cfb5bd5e628efd14a151
