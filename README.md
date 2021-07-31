@@ -1,7 +1,7 @@
 # DiffChIPL
 DiffChIPL: A Differential binding analysis method based on limma for ChIP-seq data featuring biological replicates
 
-<<<<<<< HEAD
+
 ## Install
 1. User can install source package by Rstudio
 2. User can also install the package by 
@@ -10,6 +10,9 @@ DiffChIPL: A Differential binding analysis method based on limma for ChIP-seq da
 library(devtools)
 install_github("yancychy/DiffChIPL")
 ```
+## Worfflow
+![workflow](https://github.com/yancychy/DiffChIPL/blob/main/example/workflow1.jpg)
+
 ## Example
 
 ### 1. Make a configuration file
@@ -74,4 +77,6 @@ plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
 
 ```  
 ![MA plot](https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/MA_DiffChIPL.png)
+
+
 
