@@ -72,6 +72,6 @@ plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
           title=paste0("Rlimma-CPM \n", str1,"(padj<0.05)\n", 
                        length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
 
-```
-=======
->>>>>>> c212010d18abf5b14c81cfb5bd5e628efd14a151
+```  
+![MA plot](https://github.com/yancychy/DiffChIPL/example/simHit/MA_DiffChIPL.png?raw=true)
+
