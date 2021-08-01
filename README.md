@@ -10,7 +10,7 @@ DiffChIPL: A Differential binding analysis method based on limma for ChIP-seq da
 library(devtools)
 install_github("yancychy/DiffChIPL")
 ```
-## Worfflow
+## Workflow
 ![workflow](https://github.com/yancychy/DiffChIPL/blob/main/example/workflow1.jpg)
 
 ## [Example](https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/simHist.html)
