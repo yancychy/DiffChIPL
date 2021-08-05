@@ -13,7 +13,7 @@ install_github("yancychy/DiffChIPL")
 ## Workflow
 ![workflow](https://github.com/yancychy/DiffChIPL/blob/main/example/workflow1.jpg)
 
-## [Example](https://htmlpreview.github.io/?https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/simHist.html)
+## [Example (simulation)](https://htmlpreview.github.io/?https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/simHist.html)
 
 ### 1. Make a configuration file
 The example configuration files are shown in [example/simHist/sim_hist_1.csv](https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/sim_hist_1.csv).
