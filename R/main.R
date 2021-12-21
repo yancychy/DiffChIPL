@@ -313,8 +313,8 @@ omPeaks <- function(peakFiles, overlapOrMerge=TRUE, len=2){
   for(i in 1:length(peakFiles)){
     df1 <- readr::read_delim(peakFiles[i], delim="\t", col_names=FALSE)
     peak1 <- GenomicRanges::GRanges(df1$X1, IRanges(df1$X2, df1$X3))
-    speak1 <- GenomeInfoDb::keepStandardChromosomes(peak1, pruning.mode="coarse")
-    speak1 <- GenomeInfoDb::sortSeqlevels(speak1)
+    #speak1 <- GenomeInfoDb::keepStandardChromosomes(peak1, pruning.mode="coarse")
+    speak1 <- GenomeInfoDb::sortSeqlevels(peak1)
     speak1 <- BiocGenerics::sort(speak1)
     daL[[i]] = speak1
   }
@@ -362,8 +362,8 @@ getPeakRegion <- function(fd){
   for(i in 1:nrow(fd)){
     df1 <- readr::read_delim(fd$Peaks[i], delim="\t", col_names=FALSE)
     peak1 <- GenomicRanges::GRanges(df1$X1, IRanges::IRanges(df1$X2, df1$X3))
-    speak1 <- GenomeInfoDb::keepStandardChromosomes(peak1, pruning.mode="coarse")
-    speak1 <- GenomeInfoDb::sortSeqlevels(speak1)
+    #speak1 <- GenomeInfoDb::keepStandardChromosomes(peak1, pruning.mode="coarse")
+    speak1 <- GenomeInfoDb::sortSeqlevels(peak1)
     speak1 <- BiocGenerics::sort(speak1)
     peakL[[i]] = speak1
   }
@@ -489,7 +489,7 @@ getPeakCounts <- function(pr, ps, bamIP, bamInput=NULL,removedup=TRUE, fragment 
                               shift= ceiling(fragment/2) )
   gc()
   message(Sys.time(), ": 1. Read count of IP ")
-  if(!is.null(bamInput)){
+  if(!is.na(bamInput)){
 
     ### common peak counts
     cCtr = bamsignals::bamCount(bampath = bamInput, gr =pr, ss=FALSE, filteredFlag=Flag,
@@ -517,12 +517,14 @@ getPeakCounts <- function(pr, ps, bamIP, bamInput=NULL,removedup=TRUE, fragment 
       lenA = sum(lens)
       peakLen = pr@ranges@width # common peak length
       ratio = peakLen / (lenA - peakLen)#ratio
-      backCount = (libsize[1] - sum(cIPRaw)) ## remove reads in raw peaks
+      backCount = (libsize[1] - sum(cIP)) ## remove reads in raw peaks
       peakBack =  ratio * backCount ## background noise
-      count = ceiling(cIP - peakBack)
+      ratio = peakBack/sum(cIP)
+      count = ceiling(cIP * (1 - ratio))
       #hist(count, breaks = 100)
     }else{
       count = cIP
+      ratio = 0
     }
     return(list(count=count, peakPos = pr, cIP=cIP, cInput=NULL, ratio = ratio))
   }
@@ -681,7 +683,7 @@ getReadCount <- function(inputF, overlap=FALSE, comPeakFile=NULL, fragment=0,
   if(!is.null(comPeakFile)){# user specified peak
     df1 <- readr::read_delim(comPeakFile, delim="\t", col_names=FALSE)
     po <- GRanges(df1$X1, IRanges(df1$X2, df1$X3))
-    po <- GenomeInfoDb::keepStandardChromosomes(po, pruning.mode="coarse")
+    #po <- GenomeInfoDb::keepStandardChromosomes(po, pruning.mode="coarse")
     po <- GenomeInfoDb::sortSeqlevels(po)
     po <- BiocGenerics::sort(po)
   }
@@ -740,16 +742,16 @@ getReadCount <- function(inputF, overlap=FALSE, comPeakFile=NULL, fragment=0,
     }else{
       pstr = "ignore"
     }
-    if(fd$lsCtr[i]==-1){
+    if(fd$lsCtr[i]==0){
       v1 = getPeakCounts(pr=po, ps = pinfo$peakL[[i]],
-                         bamIP = fd$bamReads[i],  bamInput = NULL,
-                         removedup = removedup,
-                         fragment=fragment, libsize=c(fd$lsIP[i], NULL),
+                         bamIP = fd$bamReads[i],  bamInput = NA,
+                         removedup = removedup, scaleControl = FALSE,
+                         fragment=fragment, libsize=c(fd$lsIP[i], 0),
                          removeBackground=removeBackground, paired.end = pstr)
     }else{
       v1 = getPeakCounts(pr=po, ps = pinfo$peakL[[i]],
                          bamIP = fd$bamReads[i],  bamInput = fd$bamControl[i],
-                         removedup = removedup,
+                         removedup = removedup, scaleControl = TRUE,
                          fragment=fragment, libsize=c(fd$lsIP[i], fd$lsCtr[i]),
                          removeBackground=removeBackground, paired.end = pstr)
     }
@@ -779,99 +781,85 @@ getReadCount <- function(inputF, overlap=FALSE, comPeakFile=NULL, fragment=0,
   list(countAll=countAll, fd=fd, peakPos=peakPos, peakOverlap =peakOverlap,
        peakUnion=peakUnion,countIP=countIP, countCtr = countCtr , countRatio = countRatio)
 }
+ 
 
-#' Use ridge regression to fit the read count for each region given the design
-#' @param oy vector, the read counts for all samples
-#' @param Xd design matrix, is same to limma's design
-#' @param lambda numeric, used as lambda for ridge regression (0<= lambda <=1)
+#' Use ridge regression to shrink the variance and coefficients
+#' @param cpmD matrix, normalized read count, row-peaks, col-samples
+#' @param meanC vector from lmFit
+#' @param coefAll matrix from lmFit
+#' @param sigmaAll vector from lmFit
+#' @param design0 integer The length of peak threshold (>2)
+#' @param ps integer Select differential lambada value for ridge regression
 #'
 #' @return list
-#'         - betaRlm vector, coefficient of ridge regression
-#'         - varBeta vector, residual variance of coefficient
-#'         - mse numeric, the MSE of ridge regression
+#'         - newCoef matrix, coefficient of ridge regression
+#'         - newSigma2 vector, variance of coefficient
+#'         - newResidualVar vector, residual variance fitting
+#'         - newMSE vector, mean squared error
 #' @examples
-#' rg = ridgeReg(oy,Xd, lambda=0.01)
+#' bv = getVB(cpmD, meanC,coefAll, sigmaAll, design0, ps=1)
 #'
-ridgeReg <- function(oy,Xd, lambda=1){
-  ted = as.data.frame(cbind(y=oy, x=Xd))
-  linearMod <- lm(y ~ ., data=ted)  # build linear regression model on full data
-  sigma2 = var(linearMod$residuals)*5/4
-  xv = solve(t(Xd) %*% Xd + lambda*diag(2)) #
-  betaRlm = xv %*% t(Xd) %*% oy
-  varRlm = sigma2* xv %*% (t(Xd) %*% Xd ) %*% xv
-  #sqrt(diag(varRlm))
-  mse = mean((ted$y - Xd %*% betaRlm)^2)
-  #sqrt(diag(chol2inv(linearMod$qr$qr[,1:2]))) #it equals to the rlm$stdev.unscaled[1,]
-  #linearMod$rank
-  #linearMod$df.residual
-  if(1==0){
-    #library(tidyverse)
-    #library(broom)
-    #library(glmnet)
-
-    fitR <- glmnet::glmnet(Xd, oy, alpha = 0, lambda = 0)
-    #summary(fitR)
-    as.matrix(fitR$beta)
-    fitR$a0
-    fitR$dev.ratio
+getVB <- function(cpmD, meanC,coefAll, sigmaAll, design0, ps=1){
+  ##1. Given the design matrix Xd, the raw value oy, and the lambda
+  ##   The fitted coefficients, sigma
+  ##2. Calculate the new coefficients and sigma
+  ##   new coefficients =  (1 + lambda)^-1 * coefficients
+  ##   new lambda =  sigma^2 * (X'X + lambda)^-1 * X'*X* (X'X + lambda)^-1
+  ##1.
+  Xd = as.matrix(Xd)
+  if(ps==1){
+    lambdaAll = (1 - abs(meanC)/(max(meanC)))^2/10
+  }else{
+    logFC =coefAll[,2]
+    svar = sigmaAll/max(sigmaAll)
+    smean = abs(meanC)/max(abs(meanC))
+    lambdaAll = (smean*svar)/(1+abs(logFC))
   }
-
-  list(beta=betaRlm, var=varRlm, mse=mse )
-}
-
-#' Use ridge regression to shrink the variance
-#' @param count matrix, normalized read count, row-peaks, col-samples
-#' @param fit0 object from lmFit
-#' @param design integer The length of peak threshold (>2)
-#'
-#' @return list
-#'         - coefB matrix, coefficient of ridge regression
-#'         - varBeta matrix, residual variance of coefficient
-#'         - lambda vector, the lambda used in ridge regression
-#' @examples
-#' bv = getVB(count, fit0, design)
-#'
-getVB <- function(count0, fit0, design0){
-  varV = fit0$sigma
-  summary(varV)
-  meanC = apply(count0,1,mean)
-  coefB = matrix(0, nrow(count0), 2)
-  rownames(coefB) = rownames(fit0$coefficients)
-  colnames(coefB) = colnames(fit0$coefficients)
-  varBeta = matrix(0, nrow(count0), 2)
-  rownames(varBeta) = rownames(fit0$coefficients)
-
-  svar = varV/max(varV) # normalize the vector
-  smean = meanC/max(meanC) #
-
-  logFC = fit0$coefficients[,2]
-  summary(abs(logFC))
-  #t <- logFC/fit0$stdev.unscaled/sqrt(out$s2.post)
-  #plot(meanC, logFC)
-
-  id = which(abs(logFC) > 0)
-  nV = rep(0, length(meanC))
-  rv = (smean*svar)/(1+abs(logFC)) # calculate the lambda for ridge regression
-  nV[id] = rv[id]
-  summary(rv[id])
-  summary(nV)
-  plot(logFC, nV)
-
-  for(i in 1:nrow(count0)){
-    vv = t(count0[i,])
-    if( max(vv) > 0){
-      res <- glmnet::glmnet(design0, vv, alpha = 0, lambda = nV[i])
-      coefB[i,] = c(res$a0, res$beta[2,1])
-      res <- glmnet::glmnet(design0, vv, alpha = 0, lambda = 0)
-      residuals1 = vv - (design0[,1] * coefB[i,1])#
-      residuals2 = vv - (design0[,2] * coefB[i,2])#
-      varBeta[i,1] = sum((residuals1 - mean(residuals1))^2)/(nrow(design0) - res$df)
-      varBeta[i,2] = sum((residuals2 - mean(residuals2))^2)/(nrow(design0) - res$df)
-    }
-  }
-  #plot(fit0$coefficients[,2], coefB[,2])
-  #points(x=seq(-10,10,0.1), y=seq(-10,10,0.1), col="red")
-  return(list(coefB = coefB,varBeta=varBeta, lambda = nV ))
+  
+  # plot(meanC, lambdaAll)
+  nv = ncol(Xd)
+  X2 = t(Xd) %*% Xd
+  Xr = solve(X2)
+  
+  XL = sapply(1:nrow(cpmD), function(ix) {
+    lx=lambdaAll[ix];
+    v1=solve(X2 + lx*diag(nv));
+    W_lambda = solve(X2 + lambdaAll[ix]*diag(nv)) %*% X2;
+    #beta = v1 %*% X2 %*% t(v1);
+    beta = v1 %*% t(Xd) %*% cpmD[ix,];
+    #residual variance
+    residualVar = sum((cpmD[ix,] - Xd %*% beta )^2)/(nrow(Xd) - ncol(Xd))
+    ##variance of beta
+    v2 = (W_lambda %*% Xr %*% t(W_lambda))
+    varB = sigmaAll[ix]^2 * v2
+    ##MSE
+    m1 = sigmaAll[ix]^2 * sum(diag(v2))
+    w1 = W_lambda - diag(ncol(Xd))
+    mse0 = m1 + t(beta) %*% t(w1) %*% w1 %*% beta
+    
+    c(beta, residualVar, diag(varB), mse0[1,1])
+  })
+  
+  newCoef = matrix(0, nrow = nrow(cpmD), ncol = ncol(Xd))
+  newSigma2 = matrix(0, nrow = nrow(cpmD), ncol = ncol(Xd))
+  newResidualVar = rep(0, nrow(cpmD))
+  newMSE = rep(0, nrow(cpmD))
+  rownames(newSigma2) = rownames(cpmD)
+  rownames(newCoef) = rownames(cpmD)
+  names(newResidualVar) = rownames(cpmD)
+  names(newMSE) = rownames(cpmD)
+  colnames(newCoef) = colnames(coefAll)
+  colnames(newSigma2) = colnames(coefAll)
+  
+  newCoef[,1] = XL[1,]
+  newCoef[,2] = XL[2,]
+  newResidualVar = XL[3,]
+  newSigma2[,1] = XL[4,]
+  newSigma2[,2] = XL[5,]
+  newMSE = XL[6,]
+  return(list(newCoef=newCoef, newSigma2=newSigma2,
+              newResidualVar=newResidualVar, newMSE=newMSE))
+  
 }
 
 
@@ -893,7 +881,7 @@ steinShrinkSigma <- function(fitq) {
             1.10, 1.09, 1.08, 1.08, 1.07, 1.06, 1.06, 1.06, 1.05, 1.05,
             1.04, 1.03, 1.03, 1.02)# V/(2/v)
 
-  sse = fitq$sigma^2 # Xg be the residual sum of squared errors (denoted by SSE)
+  sse = fitq$df.residual[1]*fitq$sigma^2 # Xg be the residual sum of squared errors (denoted by SSE)
   zid = which(sse > 1e-9) #
   zse = sse[zid]
 
@@ -929,86 +917,235 @@ steinShrinkSigma <- function(fitq) {
 }
 
 
-#' Use ridge regression to shrink the variance
+#' Use LOESS regression to correct the fold change
 #' @param d0 matrix, normalized read count, row-peaks, col-samples
-#' @param group0 vector the value of conditions
-#' @param xmean integer The mean value of each peak
-#' @param xlogfc integer The logfold change
+#' @param group vector the value of conditions
+#' @param smean vector The mean value of each peak
+#' @param sfold vector The logfold change
 #' @param span numeric the parameter which controls the degree of smoothing.
 #' @param plotT logical FALSE (default)
-#'
+#' @param offSets logical TRUE (defulat). User can set it as false when the up and down number are similar.
+#' @param sel integer Default is 2. User can set it as 1 because 1 is faster.
+#' 
 #' @return list
 #'         - dnormV vector, shrunk logFold change
 #'         - smoothV vector, fitted line
 #'         - offSetValue numeric, the value to offset the logFold change
 #' @examples
-#' loessNormOffSet(d0, group, xs=NULL, xlogfc=NULL,span=0.6, plotT = FALSE)
+#' loessNormOffSet(d0, group, smean=NULL, sfold=NULL,span=0.6, offSets= TRUE, sel = 2, plotT = FALSE)
 #'
-loessNormOffSet <- function(d0, group0, xmean=NULL, xlogfc=NULL,
-                            span=0.6, plotT = FALSE){
-  id1 = which(group0==1)
-  id2 = which(group0==0)
+loessNormOffSet <- function(d0, group, smean=NULL, sfold=NULL,span=0.6, 
+                            offSets= TRUE, sel = 2, plotT = FALSE){
+  id1 = which(group==1)
+  id2 = which(group==0)
   x1 = rowMeans(d0[,id1])
   x2 = rowMeans(d0[,id2])
-
-  if(is.null(xmean)){
-    xmean = (x1+x2)/2 # mean value
+  
+  if(is.null(smean)){
+    smean = (x1+x2)/2
   }
-  if(is.null(xlogfc)){
-    xlogfc = x1 - x2 # difference
+  if(is.null(sfold)){
+    sfold = x1 - x2
   }
-
-  ###1. correct fold change by LOESS
-  nf = data.frame(xmean=xmean)
-  da = data.frame(xmean=xmean, xlogfc=xlogfc)
-  wt = 1/(1 + abs(xlogfc))
-  wt = wt/max(wt)
-  loessMod <- loess(xlogfc ~ xmean, data=da, span = span, weights = wt) #
-  smoothV <- predict(loessMod, newdata = nf)
-  summary(smoothV)
-  if(plotT){
-    plot(x=xmean, xlogfc,  main="Loess Smoothing and Prediction",
-         col="grey", xlab="average", ylab="Diff")
-    points(x=xmean, smoothV, col="red")
+  ###1. correct fold change
+  wt = smean/max(smean)
+  if(sel==1){
+    l0 <- lowess(smean, sfold, f = span)
+    od = order(smean)
+    # summary(smean[od] - l0$x)
+    smoothV = smean[od]
+    smoothV[1:length(smoothV)] = l0$y
+    smoothV = smoothV[names(smean)]
+    smoothV = smoothV*wt
+  }else if(sel==2){ ###### 2. Fit the all peaks
+    nf = data.frame(x=smean)
+    da = data.frame(x=smean, y=sfold)
+    loessMod <- loess(y ~ x, data=da, span = span) #
+    smoothV <- predict(loessMod, newdata = nf) *wt
+    summary(smoothV)
   }
   ###3.Offset the fold change
-  subV = smoothV
-  snormV = xlogfc - smoothV
-
+  snormV = sfold - smoothV
   summary(snormV)
-  summary(subV)
+  
   if(plotT){
-    plot(xlogfc, snormV,col="grey")
-    points(seq(-10,10,0.1), seq(-10,10,0.1), col="red")
-    cor(xlogfc, snormV)
+    minV = min(c(sfold, snormV))
+    maxV = max(c(sfold, snormV))
+    plot(x=smean, sfold,  main="Loess normalized", cex = 0.1,
+         col="grey", xlab="average", ylab="Diff",  ylim=c(minV, maxV))
+    points(x=smean, snormV, col="red", cex = 0.1)
+    abline(h=0)
   }
-
-  if(plotT){
-    plot(x=xmean, xlogfc,  main="Loess normalized",
-         col="grey", xlab="average", ylab="Diff")
-    points(x=xmean, snormV, col="red")
+  if(max(smoothV) >= 0 & min(smoothV) <= 0){
+    ths = c(seq(min(smoothV), 0, 0.002), seq(0, max(smoothV), 0.002))
+  }else if( max(smoothV) <= 0 ){
+    ths = seq(min(smoothV), 0, 0.002)
+  }else if(min(smoothV) >= 0){
+    ths = seq(0, max(smoothV), 0.002)
   }
-
-  ths = seq(min(xlogfc), max(xlogfc), 0.001)
   msv = ths
+  wt2 = 1 - abs(sfold)/max(abs(sfold))
   for(i in 1:length(ths)){
-      f1 = snormV + ths[i]
-      msv[i] = mean(abs(f1 - xlogfc))
+    f1 = snormV + ths[i]
+    wt1 = 1 - abs(f1)/max(abs(f1))
+    msv[i] = dist(rbind(f1*wt1, sfold*wt2)) 
   }
   if(plotT){
-    plot(ths, msv, main="Mean distance between fitted logFC and raw logFC")
+    plot(ths, msv, main="Mean distance between \nfitted logFC and raw logFC")
   }
-  offSetValue = ths[which.min(msv)]
-  dnormV = snormV + offSetValue
-
+  
+  if(offSets){
+    offSetValue = ths[which.min(msv)] 
+    dnormV = snormV + offSetValue
+  }else{
+    dnormV = snormV 
+    offSetValue = 0
+  } 
+  
   if(plotT){
-    plot(x=xmean, xlogfc,  main="Loess normalized with offset", col="grey",
-         xlab="average", ylab="Diff")
-    points(x=xmean, snormV, col="red")
+    plot(smean, sfold,  main="Loess normalized with offset", cex=0.5,
+         xlab="Mean (log2 CPM)", ylab="Log2 Fold change")
+    points(x=smean, dnormV, cex=0.5, col="red")
+    abline(h=0)
   }
-
   list(dnormV = dnormV, smoothV=smoothV, offSetValue = offSetValue)
 }
+
+
+#' Fit the residual variance for low read counts
+#' @param cpmD matrix, normalized read count, row-peaks, col-samples
+#' @param design0 matrix the value of conditions
+#' @param sx vector The mean value of each peak
+#' @param sy vector The residual variance from lmFit()
+#' @param winS numeric the parameter which controls window size, winS=0.02 by default.
+#' @param thN integer Default is 2. If minimum sx is larger than thN, it will return raw input.
+#'            If the change point is larger than thN, it will set change point as thN.
+#' @param plotT logical FALSE (default)
+#' 
+#' @return list
+#'         - sigma vector, fitted new residual variance 
+#'         - fid vector, the id of the low count peaks
+#' @examples
+#' filtLowCounts(cpmD, design0, sx = fit1$Amean, sy = fit1$sigma,winS=0.02, thN=2, plotF=FALSE)
+#'
+filtLowCounts <- function(cpmD, design0, sx = fit1$Amean, sy = fit1$sigma,
+                           winS=0.02, thN=2, plotF=FALSE) {
+  gid1 = which(design0[,2] == 0)
+  gid2 = which(design0[,2] == 1)
+  
+  if( min(sx) >= thN){
+    return(L = list(sigma=sy, fid=1:length(sy) ) )
+  }
+  
+  ##1.Window-based shrinkage
+  allS = seq(min(sx), max(sx), winS)
+  if(allS[length(allS)] < max(sx) ){
+    allS = c(allS, max(sx))
+  }
+  winSigma = sy
+  for(i in 2:length(allS)){
+    id1 = which(sx >= allS[i-1] & sx < allS[i])
+    if(length(id1) > 1){
+      if(1==0){## weight average
+        #hist(sy[id1], breaks = 100)
+        weightX = sx[id1]/sum(sx[id1])
+        newWindowSigma = mean(sy[id1]) #sum(weightX * sy[id1])
+        ef = newWindowSigma > winSigma[id1]
+        winSigma[id1] = newWindowSigma
+      }else if(1==1){##Linear fit
+        v1 = as.vector(cpmD[id1,gid1])
+        v2 = as.vector(cpmD[id1,gid2])
+        newDesign = cbind(rep(1, length(v1)+length(v2)),
+                          c( rep(0, length(v1)), rep(1, length(v2)) ))
+        subY = c(v1,v2)
+        subLm <- lm.fit (x = newDesign, y = subY)
+        localSigma = sqrt(mean(subLm$effects[(subLm$rank + 1):length(subLm$effects)]^2))
+        # summary(winSigma[id1])
+        winSigma[id1] = localSigma
+      }
+    }
+  }
+  if(1==0){
+    plot(sx, sy, ylim=c(0,2), cex = 0.1)
+    points(sx, winSigma, col="red", cex = 0.1)
+  }
+
+  ##2.LOESS fit
+  l0 <- lowess(sx,winSigma, f = 0.5)
+  od = order(sx)
+  summary(sx[od] - l0$x)
+  smoothY = sx[od]
+  smoothY[1:length(smoothY)] = l0$y
+  smoothY = smoothY[names(sx)]
+  
+  
+  ##3.Piecewise
+  modelP <- piecewise.linear(sx,smoothY,middle = 1)
+  plot(modelP, cex = 0.1)
+  abline(v= sx[which.max(smoothY)])
+  midX  = modelP$change.point
+  midSimag = smoothY[which.min(abs(sx - midX))]
+  
+  if( midX >= thN){
+    midX = thN
+  }
+  
+  library(aomisc)
+  ##4.Fit a line as variance of low expression data
+  mid = which(sx >= midX)
+  nd = data.frame(x = sx[mid], y = smoothY[mid])
+  model <- drm(y ~ x, fct = DRC.expoDecay(),  data = nd) #
+  # DRC.expoDecay EXD.2() DRC.powerCurve
+  # Y = a * exp(k*X) NLS.expoDecay DRC.asymReg DRC.logCurve
+  #model
+  #model$predres
+  rg = PR(model, sx)
+  if(plotF){
+    plot(sx,  y = sy, ylim=c(0,2), cex = 0.1)
+    points(sx, rg, cex = 0.01, col="red")
+  }
+  fid = which(sx < midX )# & sy < rg
+  sigma = sy
+  sigma[fid] = rg[fid]
+  
+  if(plotF){
+    df0 = data.frame(x = sx, rawSigma = sy, winSigma = winSigma,
+                     smoothSigma = smoothY, sigma=sigma)
+    
+    p1 = ggplot(data=df0, aes(x=sx, y=rawSigma)) +
+      geom_point(size = 0.1, colour="#b3cccc") +
+      geom_point(aes(x=x,y=winSigma), size = 0.1, colour="#ff6600") +
+      geom_point(aes(x=x,y=smoothY), size = 0.1, colour="#33cc33") +
+      #geom_point(aes(x=modelP$x,y=modelP$y),colour="#ff0066") +
+      theme_classic() +
+      theme(plot.title = element_text(hjust = 0,size=20,face="bold"),
+            axis.text = element_text(size = 15,face="bold"),
+            axis.title=element_text(size=15,face="bold")) +
+      labs(title="", x ="Mean (log2 CPM)", y = "Residual variance")
+    
+    p2 = ggplot(data=df0, aes(x=sx, y=rawSigma)) +
+      geom_point(size = 0.1, colour="#b3cccc") +
+      geom_point(aes(x=x,y=sigma), size = 0.1, colour="#ff6600")+
+      theme_classic() +
+      theme(plot.title = element_text(hjust = 0,size=20,face="bold"),
+            axis.text = element_text(size = 15,face="bold"),
+            axis.title=element_text(size=15,face="bold")) +
+      labs(title="", x ="Mean (log2 CPM)", y = "Residual variance")
+    
+    library(ggplot2)
+    library(gridExtra)
+    library(grid)
+    g1 <- ggplotGrob(p1)
+    g2 <- ggplotGrob(p2)
+    gList1 = cbind(g1, g2)
+    pdf("fitLow.pdf", width = 8, height = 4) # Open a new pdf file
+    grid::grid.newpage()
+    grid::grid.draw(gList1)
+    dev.off() # Close the file
+  }
+  return(L = list(sigma=sigma, fid=fid) )
+}
+
 
 #' Do differential binding analysis by DiffChIPL
 #' @param cpmD matrix, normalized CPM
@@ -1025,27 +1162,25 @@ loessNormOffSet <- function(d0, group0, xmean=NULL, xlogfc=NULL,
 #'
 DiffChIPL <- function(cpmD, design0, group0 = group ){
   #1.limma  linear regression
-  fit3 <- lmFit(cpmD, design0, weights=NULL, method = "ls")
-  #2. Ridge regression
-  vb = getVB(count0=cpmD, fit0 = fit3, design0) # ridge regression
-  fitRlimm3 = fit3
-  fitRlimm3$coefficients = vb$coefB
-  fitRlimm3$sigma = sqrt(vb$varBeta[,2])
-  # 3. James-stein estimator
-  fit3_stein = steinShrinkSigma(fitRlimm3)
-  fitRlimm3$sigma = sqrt(fit3_stein)
+  fit1 <- lmFit(cpmD, design0, weights=NULL, method = "ls")
+  #2.Fit the residual varaince for low read counts
+  fitRlimmN = fit1
+  filtL = filtLowCounts(cpmD, design0,
+                         sx = fitRlimmN$Amean, sy = fitRlimmN$sigma )
+  fitRlimmN$sigma[filtL$fid] =  filtL$sigma[filtL$fid]
+   
+  #3.Remove bias by LOESS regression
+  resV = loessNormOffSet(d0 = cpmD, group= design0[,2], smean=fitRlimmN$Amean, 
+                      sfold= fitRlimmN$coefficients[,2], offSets = T)
+  fitRlimmN$coefficients[,2] = resV$dnormV
 
-  #4.Remove bias by LOESS regression
-  ln = loessNormOffSet(d0 = cpmD, group0 = group,
-                       xmean=fitRlimm3$Amean,
-                       xlogfc = fitRlimm3$coefficients[,2])
-  fitRlimm3$coefficients[,2] = ln$dnormV
+  # 4. limma-trend
+  fitRlimmR = fitRlimmN
+  fitRlimmR <- eBayes(fitRlimmR, trend = TRUE, robust=TRUE)
+  rtRlimmR = topTable(fitRlimmR, n = nrow(cpmD), coef=2)
+  rtRlimmR = rtRlimmR[rownames(cpmD),]
 
-  # 5. limma-trend
-  fitRlimm3 <- eBayes(fitRlimm3, trend = TRUE, robust=TRUE)
-  rtRlimm3 = topTable(fitRlimm3, n = nrow(cpmD), coef=2)
-
-  list(fitlimma = fit3, fitDiffL = fitRlimm3,  resDE = rtRlimm3)
+  list(fitlimma = fit1, fitDiffL = fitRlimmR,  resDE = rtRlimmR)
 }
 
 
@@ -1058,10 +1193,8 @@ DiffChIPL <- function(cpmD, design0, group0 = group ){
 #' @param binN integer 100 by default, bin number
 #' @param tN numeric  0.6 by default, [0,1] for transparent
 #'
-#' @return list
-#'         - dnormV vector, shrunk logFold change
-#'         - smoothV vector, fitted line
-#'         - offSetValue numeric, the value to offset the logFold change
+#' @return ggplot2 object
+#'
 #' @examples
 #' histOverlay(d0, group, xs=NULL, xlogfc=NULL,span=0.6, plotT = FALSE)
 #'

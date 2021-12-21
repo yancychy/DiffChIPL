@@ -52,7 +52,7 @@ histOverlay(v1=fit3$t[,2], v2=fitRlimm3$t[,2],
             name1="limma", name2="DiffBindL", xname="Moderated t-test value")
 
 histOverlay(v1=rt3$P.Value, v2=rtRlimm3$P.Value,binN = 20, tN = 0.6,
-            name1="limma", name2="DiffBindL", xname="P-value")
+            name1="voom", name2="DiffBindL", xname="P-value")
 
 
 refF = "hist1_refDE.bed"
@@ -69,5 +69,4 @@ p = plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
                title=paste0("DiffChIPL \n", str1,"(padj<0.05)\n",
                             length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
 p + theme_classic()
-
 

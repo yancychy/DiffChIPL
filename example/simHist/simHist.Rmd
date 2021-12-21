@@ -18,8 +18,7 @@ knitr::opts_chunk$set(results='hide', message=FALSE, code_folding='hide')
 ```{r results='asis'}
 library(DiffChIPL)
 load("simHistCount.Data")
-
-
+ 
 peakPos = countL$peakPos
 peakAll = cbind(as.character(peakPos@seqnames), peakPos@ranges@start,
                 peakPos@ranges@start+peakPos@ranges@width-1)
