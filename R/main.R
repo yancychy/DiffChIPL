@@ -1030,6 +1030,7 @@ loessNormOffSet <- function(d0, group, smean=NULL, sfold=NULL,span=0.6,
 #'
 filtLowCounts <- function(cpmD, design0, sx = fit1$Amean, sy = fit1$sigma,
                            winS=0.02, thN=2, plotF=FALSE) {
+  cpmD = as.matrix(cpmD)
   gid1 = which(design0[,2] == 0)
   gid2 = which(design0[,2] == 1)
   
