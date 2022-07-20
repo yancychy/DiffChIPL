@@ -1,6 +1,5 @@
 # DiffChIPL
-DiffChIPL: A Differential binding analysis method based on limma for ChIP-seq data featuring biological replicates
-
+DiffChIPL: a differential peak analysis method for high-throughput sequencing data with biological replicates based on limma
 
 ## Install
 1. User can install source package by Rstudio
