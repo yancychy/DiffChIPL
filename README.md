@@ -1,7 +1,7 @@
 # DiffChIPL
 DiffChIPL: a differential peak analysis method for high-throughput sequencing data with biological replicates based on limma
 
-[Chen, Yang, Shue Chen, and Elissa P. Lei. "DiffChIPL: a differential peak analysis method for high-throughput sequencing data with biological replicates based on limma." Bioinformatics 38.17 (2022): 4062-4069](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=ewyp5tIAAAAJ&sortby=pubdate&citation_for_view=ewyp5tIAAAAJ:hqOjcs7Dif8C)
+[Chen, Yang, Shue Chen, and Elissa P. Lei. "DiffChIPL: a differential peak analysis method for high-throughput sequencing data with biological replicates based on limma." Bioinformatics 38.17 (2022): 4062-4069. Cited by 4](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=ewyp5tIAAAAJ&sortby=pubdate&citation_for_view=ewyp5tIAAAAJ:hqOjcs7Dif8C)
 
 
 ## Install
