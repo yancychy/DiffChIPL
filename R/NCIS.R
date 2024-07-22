@@ -27,6 +27,7 @@
 #' @param chr.vec vector of chromosomes in the data. Only reads in chr.vec are considered for normalization purpose.
 #' @param chr.len.vec vector of chromosome lengths corresponding to chr.vec
 #' @param quant quantile to start the searching for total threshold. Default 0.75.
+#' @param removeUN_Random_Chr boolean, default is FALSE, whether to remove unknown or random chromosomes
 #' @details data.type
 #'     {MCS} Minimum ChIP-Seq format. data.frame with fields: chr (factor), pos (integer) and strand
 #'     (factor, "+" and "-"). pos is 5' location. This is different from eland default which use 3' location for reverse strand.
