@@ -56,7 +56,8 @@
 NCIS <- function(chip.data, input.data, data.type=c("MCS", "BED", "AlignedRead", "BAM"),
                  frag.len=200, min.binsize=100, max.binsize=20000,
                  binsize.shift=100, min.stop.binsize=100,
-                 chr.vec=NULL, chr.len.vec=NULL, quant=0.75){
+                 chr.vec=NULL, chr.len.vec=NULL, quant=0.75,
+                 removeUN_Random_Chr = FALSE){
   if(data.type=="MCS"){
     chip <- read.MCS(chip.data)
     input <- read.MCS(input.data)
@@ -69,8 +70,8 @@ NCIS <- function(chip.data, input.data, data.type=c("MCS", "BED", "AlignedRead",
     input <- read.BED(input.data)
   }else if(data.type=="BAM"){
     library(GenomicAlignments)
-    chip <- read.BAM(chip.data)
-    input <- read.BAM(input.data)
+    chip <- read.BAM(chip.data, removeUN_Random_Chr = removeUN_Random_Chr)
+    input <- read.BAM(input.data, removeUN_Random_Chr = removeUN_Random_Chr)
   }else{
     stop("Unknown data format: type can only be 'NCIS', 'BED' or 'AlignedRead'")
   }
@@ -208,11 +209,12 @@ read.AlignedRead <-
   }
 
 #chip <- read.BAM("bam file path")
-read.BAM <- function(aln){
+read.BAM <- function(aln, removeUN_Random_Chr = FALSE){
   if(is.character(aln)){
     gal1 <- GenomicAlignments::readGAlignments(aln)
-    gal1 <- GenomeInfoDb::keepStandardChromosomes(gal1, pruning.mode="coarse")
-
+    if(removeUN_Random_Chr){
+       gal1 <- GenomeInfoDb::keepStandardChromosomes(gal1, pruning.mode="coarse")
+    }
     pos1 =  GenomicRanges::start(gal1) +
       (GenomicRanges::strand(gal1)=="-") * (GenomicRanges::width(gal1)-1)
 
