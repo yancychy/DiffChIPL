@@ -12,7 +12,7 @@ DiffChIPL: a differential peak analysis method for high-throughput sequencing da
 library(devtools)
 install_github("yancychy/DiffChIPL")
 ```
-## Pre-installed packages:
+3. Pre-installed packages:
 
 Depends: 
 R (>= 4.0.0) 
