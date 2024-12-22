@@ -1,0 +1,12 @@
+git config --global user.name yancychy
+git config --global user.email yancychy@163.com
+git config ––list
+
+
+git remote add origin /Users/cheny48/.ssh/id_ed25519
+git push -u origin master
+
+
+###########################
+git pull origin main
+git push -f origin main # force to update

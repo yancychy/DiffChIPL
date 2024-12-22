@@ -1,0 +1,7 @@
+SampleID,Tissue,Factor,Condition,Treatment,Replicate,bamReads,ControlID,bamControl,Peaks,PeakCaller 
+mock_Pc_rep1,kc167,Pc,mock,mock,1,bam/mock_Pc_rep1.bam,Input_mock_1,,peaks/Pc_all_sortNochr.bed,bed
+mock_Pc_rep2,kc167,Pc,mock,mock,2,bam/mock_Pc_rep2.bam,Input_mock_2,,peaks/Pc_all_sortNochr.bed,bed
+mock_Pc_rep3,kc167,Pc,mock,mock,3,bam/mock_Pc_rep3.bam,Input_mock_3,,peaks/Pc_all_sortNochr.bed,bed
+rumpkd_Pc_rep1,kc167,Pc,rumpkd,rumpkd,1,bam/rumpkd_Pc_rep1.bam,Input_rumpkd_1,,peaks/Pc_all_sortNochr.bed,bed
+rumpkd_Pc_rep2,kc167,Pc,rumpkd,rumpkd,2,bam/rumpkd_Pc_rep2.bam,Input_rumpkd_2,,peaks/Pc_all_sortNochr.bed,bed
+rumpkd_Pc_rep3,kc167,Pc,rumpkd,rumpkd,3,bam/rumpkd_Pc_rep3.bam,Input_rumpkd_3,,peaks/Pc_all_sortNochr.bed,bed

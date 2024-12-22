@@ -1,31 +1,35 @@
 # DiffChIPL
+
 DiffChIPL: A Differential binding analysis method based on limma for ChIP-seq data featuring biological replicates
 
-
 ## Install
-1. User can install source package by Rstudio
-2. User can also install the package by 
 
-```R
+1.  User can install source package by Rstudio
+2.  User can also install the package by
+3.  The dependent packages are as follows: R (\>= 4.0.0), tidyverse, broom, limma, edgeR, MASS, GenomicRanges, Rsamtools, bamsignals, readr, SGSeq, roxygen2, RColorBrewer, pracma, readr, dplyr, reshape2, drc, nlme, aomisc,SiZer
+
+``` r
 library(devtools)
 install_github("yancychy/DiffChIPL")
 ```
+
 ## Workflow
+
 ![workflow](https://github.com/yancychy/DiffChIPL/blob/main/example/workflow1.jpg)
 
 ## [Example (simulation)](https://htmlpreview.github.io/?https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/simHist.html)
 
 ### 1. Make a configuration file
+
 The example configuration files are shown in [example/simHist/sim_hist_1.csv](https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/sim_hist_1.csv).
 
 Commonly, the configuration file of DiffBind can be used directly.
 
 ### 2.Get read count from simulated histone datasets
-We used the simulation code in [csaw](http://bioinf.wehi.edu.au/csaw/) to simulate the histone which is a mixture of complex peak structures.
-We simulated 10000 peaks which have 1000 increased peaks  and 1000 decreased peaks.
-The simulation histone has two groups. In each group, there has two replicates for each histone condition. 
 
-```R
+We used the simulation code in [csaw](http://bioinf.wehi.edu.au/csaw/) to simulate the histone which is a mixture of complex peak structures. We simulated 10000 peaks which have 1000 increased peaks and 1000 decreased peaks. The simulation histone has two groups. In each group, there has two replicates for each histone condition.
+
+``` r
 library(DiffChIPL)
 flib="sim_hist_1.csv"
 countL = getReadCount(inputF=flib,overlap=FALSE, fragment=0,
@@ -34,7 +38,7 @@ countL = getReadCount(inputF=flib,overlap=FALSE, fragment=0,
 
 ### 3. Make the design matrix and normalization
 
-```R
+``` r
 str1 = "sim-hist1-sim1.vs.sim2-Ridge"
 group= c(1,1,0,0)
 ctrName = "sim2"
@@ -49,21 +53,19 @@ for(i in 1:ncol(countAll)){
   countAll[id,i] = 0
 }
 cpmD = cpmNorm(countAll, libsize = fd$lsIP)
-
 ```
 
 ### 4. Do differential analysis with DiffChIPL
 
-```R
+``` r
 resA = DiffChIPL(cpmD, design0, group0 = group )
 fitRlimm3 = resA$fitDiffL
 rtRlimm3 = resA$resDE
 ```
 
-
 ### 5. Check the differential results
 
-```R
+``` r
 id_Rlimma_CPM = rownames(rtRlimm3[which(rtRlimm3$adj.P.Val < 0.05),])
  
 rtRlimm3 = rtRlimm3[rownames(cpmD),]
@@ -74,9 +76,6 @@ plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
            refDE= refDE, padj=0.05, MA=TRUE,
           title=paste0("Rlimma-CPM \n", str1,"(padj<0.05)\n", 
                        length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
+```
 
-```  
 ![MA plot](https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/MA_DiffChIPL.png)
-
-
-

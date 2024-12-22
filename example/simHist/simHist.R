@@ -3,14 +3,23 @@ pth1 = getwd()
 setwd(paste0(pth1, "/example/simHist/"))
 getwd()
 
+# libpath = "/Users/cheny48/Library/R/x86_64/4.4/library/"
+
+#BiocManager::install("corpcor",force =TRUE,  lib=libpath)
+#devtools::install_github("onofriAndreaPG/aomisc")
 library(DiffChIPL)
 flib="sim_hist_1.csv"
-countL = getReadCount(inputF=flib,overlap=FALSE, fragment=0,
-                      removeBackground=TRUE)
-
+countL = getReadCount(inputF=flib,overlap=FALSE, fragmentLen =250,
+                      removeBackground=TRUE, removeUN_Random_Chr = TRUE)
+countL$fd
+countL$countAll[1:3,]
+countL$countIP[1:3,]
+countL$countCtr[1:3,]
+countL$peakPos[1:3]
 
 save(a = countL,file = "simHistCount.Data")
 
+load("simHistCount.Data")
 
 fd = countL$fd
 libsize = fd$lsIP
@@ -69,4 +78,42 @@ p = plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1,
                title=paste0("DiffChIPL \n", str1,"(padj<0.05)\n",
                             length(id_Rlimma_CPM), " of ", nrow(rtRlimm3) ))
 p + theme_classic()
+
+
+
+############################################################ 
+## 
+############################################################ 
+cpmD = read.csv("cpmD_jun.csv", header = TRUE, sep = ",")
+
+# ==============================================================================
+# 2_Make the design matrix and normalization
+# ==============================================================================
+group= c(1,1,1,0,0,0)
+ctrName = "control"
+treatName = "treat"
+groupName = rep(c(treatName, ctrName),each = 3)
+design0 <- cbind(rep(1, 6), c(1,1,1,0,0,0))
+colnames(design0) <- c(ctrName, treatName)
+design0
+
+for(i in 1:ncol(cpmD)){
+  print(table(is.na(cpmD[,i])))
+}
+sum1 = apply(cpmD[,1:3], 1, function(x) { sum(x) })
+table(sum1 > 0)
+min(sum1)
+sum2 = apply(cpmD[,4:6], 1, function(x) { sum(x) })
+table(sum2 > 0)
+min(sum2)
+
+id = which(sum1 > 0)
+cpmD2 = cpmD[id, ]
+
+# ==============================================================================
+# 3_Do differential analysis with DiffChIPL
+# ==============================================================================
+resA = DiffChIPL(cpmD, design0, group0 = group)
+fitRlimm3 = resA$fitDiffL
+rtRlimm3 = resA$resDE
 

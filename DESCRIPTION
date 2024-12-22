@@ -10,10 +10,10 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: yes
 Depends: R (>= 4.0.0), tidyverse, broom, limma, edgeR, MASS, GenomicRanges, Rsamtools, bamsignals, readr, SGSeq, roxygen2,
-    RColorBrewer, pracma, readr, dplyr, reshape2, drc, nlme, aomisc,SiZer 
+    RColorBrewer, pracma, readr, dplyr, reshape2, drc, nlme, aomisc,SiZer,corpcor
 Imports:
     tidyverse, broom, limma, edgeR, MASS, GenomicRanges, Rsamtools, bamsignals, readr, SGSeq, roxygen2,
-    RColorBrewer, pracma, readr, dplyr, reshape2, drc, nlme, aomisc,SiZer 
+    RColorBrewer, pracma, readr, dplyr, reshape2, drc, nlme, aomisc,SiZer,corpcor
 Suggests:
     knitr,
     rmarkdown

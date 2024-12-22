@@ -170,6 +170,64 @@ pre code {
 <div id="diffchipl" class="section level1">
 <h1>DiffChIPL</h1>
 <p>DiffChIPL: A Differential binding analysis method based on limma for ChIP-seq data featuring biological replicates</p>
+<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD ## Install 1. User can install source package by Rstudio 2. User can also install the package by</p>
+<pre class="r"><code>library(devtools)
+install_github(&quot;yancychy/DiffChIPL&quot;)</code></pre>
+<div id="example" class="section level2">
+<h2>Example</h2>
+<div id="make-a-configuration-file" class="section level3">
+<h3>1. Make a configuration file</h3>
+<p>The example configuration files are shown in <a href="https://github.com/yancychy/DiffChIPL/blob/main/example/simHist/sim_hist_1.csv">example/simHist/sim_hist_1.csv</a>.</p>
+<p>Commonly, the configuration file of DiffBind can be used directly.</p>
+</div>
+<div id="get-read-count-from-simulated-histone-datasets" class="section level3">
+<h3>2.Get read count from simulated histone datasets</h3>
+<p>We used the simulation code in <a href="http://bioinf.wehi.edu.au/csaw/">csaw</a> to simulate the histone which is a mixture of complex peak structures. We simulated 10000 peaks which have 1000 increased peaks and 1000 decreased peaks. The simulation histone has two groups. In each group, there has two replicates for each histone condition.</p>
+<pre class="r"><code>library(DiffChIPL)
+flib=&quot;sim_hist_1.csv&quot;
+countL = getReadCount(inputF=flib,overlap=FALSE, fragment=0,
+                      removeBackground=TRUE)</code></pre>
+</div>
+<div id="make-the-design-matrix-and-normalization" class="section level3">
+<h3>3. Make the design matrix and normalization</h3>
+<pre class="r"><code>str1 = &quot;sim-hist1-sim1.vs.sim2-Ridge&quot;
+group= c(1,1,0,0)
+ctrName = &quot;sim2&quot;
+treatName = &quot;sim1&quot;
+groupName = c(treatName, treatName,ctrName,ctrName) 
+design0 &lt;- cbind(rep(1, 4), c(1,1,0,0))
+colnames(design0) &lt;- c(ctrName, treatName)
+design0
+ 
+for(i in 1:ncol(countAll)){
+  id = which(countAll[,i] &lt; 1)
+  countAll[id,i] = 0
+}
+cpmD = cpmNorm(countAll, libsize = fd$lsIP)
+</code></pre>
+</div>
+<div id="do-differential-analysis-with-diffchipl" class="section level3">
+<h3>4. Do differential analysis with DiffChIPL</h3>
+<pre class="r"><code>resA = DiffChIPL(cpmD, design0, group0 = group )
+fitRlimm3 = resA$fitDiffL
+rtRlimm3 = resA$resDE</code></pre>
+</div>
+<div id="check-the-differential-results" class="section level3">
+<h3>5. Check the differential results</h3>
+<pre class="r"><code>id_Rlimma_CPM = rownames(rtRlimm3[which(rtRlimm3$adj.P.Val &lt; 0.05),])
+ 
+rtRlimm3 = rtRlimm3[rownames(cpmD),]
+aveE = rtRlimm3$AveExpr
+logFC = rtRlimm3$logFC
+padj = rtRlimm3$adj.P.Val
+plotMAVoc2(mean=aveE, logfc=logFC, adj.P.Val=padj, FC=1, 
+           refDE= refDE, padj=0.05, MA=TRUE,
+          title=paste0(&quot;Rlimma-CPM \n&quot;, str1,&quot;(padj&lt;0.05)\n&quot;, 
+                       length(id_Rlimma_CPM), &quot; of &quot;, nrow(rtRlimm3) ))
+</code></pre>
+<p><a href="https://github.com/yancychy/DiffChIPL/example/simHit/MA_DiffChIPL.png?raw=true">MA plot</a></p>
+</div>
+</div>
 </div>
 
 

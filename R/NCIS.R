@@ -27,6 +27,7 @@
 #' @param chr.vec vector of chromosomes in the data. Only reads in chr.vec are considered for normalization purpose.
 #' @param chr.len.vec vector of chromosome lengths corresponding to chr.vec
 #' @param quant quantile to start the searching for total threshold. Default 0.75.
+#' @param removeUN_Random_Chr boolean, default is FALSE, whether to remove unknown or random chromosomes
 #' @details data.type
 #'     {MCS} Minimum ChIP-Seq format. data.frame with fields: chr (factor), pos (integer) and strand
 #'     (factor, "+" and "-"). pos is 5' location. This is different from eland default which use 3' location for reverse strand.
@@ -56,7 +57,8 @@
 NCIS <- function(chip.data, input.data, data.type=c("MCS", "BED", "AlignedRead", "BAM"),
                  frag.len=200, min.binsize=100, max.binsize=20000,
                  binsize.shift=100, min.stop.binsize=100,
-                 chr.vec=NULL, chr.len.vec=NULL, quant=0.75){
+                 chr.vec=NULL, chr.len.vec=NULL, quant=0.75,
+                 removeUN_Random_Chr = FALSE){
   if(data.type=="MCS"){
     chip <- read.MCS(chip.data)
     input <- read.MCS(input.data)
@@ -69,8 +71,8 @@ NCIS <- function(chip.data, input.data, data.type=c("MCS", "BED", "AlignedRead",
     input <- read.BED(input.data)
   }else if(data.type=="BAM"){
     library(GenomicAlignments)
-    chip <- read.BAM(chip.data)
-    input <- read.BAM(input.data)
+    chip <- read.BAM(chip.data, removeUN_Random_Chr = removeUN_Random_Chr)
+    input <- read.BAM(input.data, removeUN_Random_Chr = removeUN_Random_Chr)
   }else{
     stop("Unknown data format: type can only be 'NCIS', 'BED' or 'AlignedRead'")
   }
@@ -197,8 +199,10 @@ read.BED <- function(bed.file){
 read.AlignedRead <-
   function(aln){
     if(is(aln, "AlignedRead")){
-      res <- split(data.frame(pos=position(aln)+(strand(aln)=="-")*(width(aln)-1),
-                              strand=factor(strand(aln))), chromosome(aln), drop = TRUE)
+      res <- split(data.frame(
+                        pos= position(aln)+(strand(aln)=="-")*(width(aln)-1),
+                        strand=factor(strand(aln))), 
+                        chromosome(aln), drop = TRUE)
       res <- res[names(res)!=""]
       res <- lapply(res, function(x) split(x[, "pos"], x$strand, drop = TRUE))
       return(res)
@@ -208,14 +212,14 @@ read.AlignedRead <-
   }
 
 #chip <- read.BAM("bam file path")
-read.BAM <- function(aln){
+read.BAM <- function(aln, removeUN_Random_Chr = FALSE){
   if(is.character(aln)){
     gal1 <- GenomicAlignments::readGAlignments(aln)
-    gal1 <- GenomeInfoDb::keepStandardChromosomes(gal1, pruning.mode="coarse")
-
+    if(removeUN_Random_Chr){
+       gal1 <- GenomeInfoDb::keepStandardChromosomes(gal1, pruning.mode="coarse")
+    }
     pos1 =  GenomicRanges::start(gal1) +
       (GenomicRanges::strand(gal1)=="-") * (GenomicRanges::width(gal1)-1)
-
     res <- split(data.frame(pos=pos1, strand=factor(GenomicRanges::strand(gal1))),
                  seqnames(gal1), drop = TRUE)
     res <- res[names(res)!=""]
